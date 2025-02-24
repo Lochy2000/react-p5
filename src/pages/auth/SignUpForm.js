@@ -4,6 +4,7 @@ import { Link, useHistory } from "react-router-dom";
 import styles from "../../styles/SignInUpForm.module.css";
 import btnStyles from "../../styles/Button.module.css";
 import appStyles from "../../App.module.css";
+import axios from 'axios';
 
 import {
   Form,
@@ -14,7 +15,7 @@ import {
   Container,
   Alert,
 } from "react-bootstrap";
-import axios from "axios";
+
 
 const SignUpForm = () => {
   const [signUpData, setSignUpData] = useState({
