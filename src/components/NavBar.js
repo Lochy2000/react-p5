@@ -9,9 +9,6 @@ import {
 } from "../contexts/CurrentUserContext";
 import Avatar from "./Avatar";
 import axios from "axios";
-import { getCookie } from "../contexts/CurrentUserContext";
-
-
 
 const NavBar = () => {
   const currentUser = useCurrentUser();
@@ -19,19 +16,12 @@ const NavBar = () => {
 
   const handleSignOut = async () => {
     try {
-        await axios.post(
-            "https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/logout/",
-            {},
-            { withCredentials: true }  // Ensure cookies are sent with logout request
-        );
-
-        localStorage.removeItem("token");  // Remove stored JWT token
-        setCurrentUser(null);
+      await axios.post("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/logout/");
+      setCurrentUser(null);
     } catch (err) {
-        console.log("Logout failed:", err.response?.data);
+      console.log(err);
     }
-};
-
+  };
 
   const addPostIcon = (
     <NavLink
