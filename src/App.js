@@ -16,12 +16,15 @@ function App() {
 
   const handleMount = async () => {
     try {
-      const { data } = await axios.get("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/user/");
-      setCurrentUser(data);
+        const { data } = await axios.get("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/user/", {
+            withCredentials: true
+        });
+        console.log("User authenticated:", data);
+        setCurrentUser(data);
     } catch (err) {
-      console.log(err);
+        console.log("User not authenticated:", err);
     }
-  };
+};
 
   useEffect(() => {
     handleMount();

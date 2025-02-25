@@ -16,6 +16,21 @@ import btnStyles from "../../styles/Button.module.css";
 import appStyles from "../../App.module.css";
 import { SetCurrentUserContext } from "../../App";
 
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 function SignInForm() {
   const setCurrentUser = useContext(SetCurrentUserContext);
 
@@ -28,17 +43,22 @@ function SignInForm() {
   const [errors, setErrors] = useState({});
 
   const history = useHistory();
-  const handleSubmit = async (event) => {
-    event.preventDefault();
 
-    try {
-      const { data } = await axios.post("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/login/", signInData);
-      setCurrentUser(data.user);
-      history.push("/");
-    } catch (err) {
-      setErrors(err.response?.data);
-    }
-  };
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+        try {
+            const { data } = await axios.post(
+                "https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/login/",
+                signInData,
+                { withCredentials: true, headers: { "X-CSRFToken": getCookie("csrftoken") } }
+            );
+            setCurrentUser(data.user);
+            history.push("/");
+        } catch (err) {
+            console.log("Login failed:", err.response?.data);
+            setErrors(err.response?.data);
+        }
+    };
 
   const handleChange = (event) => {
     setSignInData({
