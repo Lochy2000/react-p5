@@ -9,30 +9,45 @@ export const SetCurrentUserContext = createContext();
 export const useCurrentUser = () => useContext(CurrentUserContext);
 export const useSetCurrentUser = () => useContext(SetCurrentUserContext);
 
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + "=")) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 export const CurrentUserProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const history = useHistory();
 
-  const handleMount = async () => {
+
+const fetchCsrfToken = async () => {
     try {
-        const { data } = await axios.get("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/user/", {
-            withCredentials: true
+        await axios.get("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/csrf/", {
+            withCredentials: true,
         });
-      setCurrentUser(data);
     } catch (err) {
-      console.log(err);
+        console.log("Failed to fetch CSRF token", err);
     }
-  };
+};
 
-  useEffect(() => {
-    handleMount();
-  }, []);
-
+// Fetch CSRF token when the app loads
+useEffect(() => {
+    fetchCsrfToken();
+}, []);
   useMemo(() => {
     axiosReq.interceptors.request.use(
       async (config) => {
         try {
-          await axiosRes.post("/dj-rest-auth/token/refresh/");
+          await axiosRes.post("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/token/refresh/");
         } catch (err) {
           setCurrentUser((prevCurrentUser) => {
             if (prevCurrentUser) {
@@ -79,3 +94,4 @@ export const CurrentUserProvider = ({ children }) => {
   );
 };
 
+export { getCookie };

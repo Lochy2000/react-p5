@@ -1,11 +1,16 @@
 import axios from "axios";
 
-axios.defaults.baseURL = 'https://react-p5-test-3e9d984aefe4.herokuapp.com/'
-axios.defaults.headers.post["Content-Type"] = "multipart/form-data";
-axios.defaults.withCredentials = true;
-axios.defaults.headers.common["X-Requested-With"] = "XMLHttpRequest";
-
-// page refresh
+axios.defaults.baseURL = "https://drftesting-caf88c0c0aca.herokuapp.com/";
+axios.defaults.withCredentials = true;  // Ensures cookies are sent
 
 export const axiosReq = axios.create();
 export const axiosRes = axios.create();
+
+// Attach JWT token to requests (if using JWT authentication)
+axiosReq.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");  // JWT stored in local storage
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
