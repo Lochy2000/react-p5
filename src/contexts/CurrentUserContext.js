@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { axiosReq, axiosRes } from "../api/axiosDefaults";
-import { useHistory } from "react-router";
+import { useHistory } from "react-router-dom";
 
 export const CurrentUserContext = createContext();
 export const SetCurrentUserContext = createContext();
@@ -9,41 +9,32 @@ export const SetCurrentUserContext = createContext();
 export const useCurrentUser = () => useContext(CurrentUserContext);
 export const useSetCurrentUser = () => useContext(SetCurrentUserContext);
 
-
 export const CurrentUserProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const history = useHistory();
 
-
-const fetchCsrfToken = async () => {
+  // Fetch the current user when the app loads
+  const handleMount = async () => {
     try {
-        await axios.get("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/csrf/", {
-            withCredentials: true,
-        });
+      const { data } = await axiosRes.get("/dj-rest-auth/user/");
+      setCurrentUser(data);
     } catch (err) {
-        console.log("Failed to fetch CSRF token", err);
+      console.log("User fetch error:", err);
+      // Don't redirect here - the user might not be logged in yet
     }
-};
+  };
 
-// Fetch CSRF token when the app loads
-useEffect(() => {
-    fetchCsrfToken();
-}, []);
+  useEffect(() => {
+    handleMount();
+  }, []);
 
+  // Set up interceptors for token refresh
   useMemo(() => {
+    // Request interceptor - runs before each request
     axiosReq.interceptors.request.use(
       async (config) => {
-        try {
-          await axiosRes.post("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/token/refresh/");
-        } catch (err) {
-          setCurrentUser((prevCurrentUser) => {
-            if (prevCurrentUser) {
-              history.push("/signin");
-            }
-            return null;
-          });
-          return config;
-        }
+        // The JWT cookies should be sent automatically
+        // No need to manually add headers
         return config;
       },
       (err) => {
@@ -51,26 +42,29 @@ useEffect(() => {
       }
     );
 
+    // Response interceptor - runs after each response
     axiosRes.interceptors.response.use(
       (response) => response,
       async (err) => {
         if (err.response?.status === 401) {
           try {
-            await axios.post("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/token/refresh/");
-          } catch (err) {
-            setCurrentUser((prevCurrentUser) => {
-              if (prevCurrentUser) {
-                history.push("/signin");
-              }
-              return null;
-            });
+            // Try to refresh the token
+            await axios.post("/dj-rest-auth/token/refresh/");
+            // If refresh works, retry the original request
+            return axios(err.config);
+          } catch (refreshErr) {
+            // If refresh fails, log out the user
+            setCurrentUser(null);
+            // Only redirect if user was previously logged in
+            if (currentUser) {
+              history.push("/signin");
+            }
           }
-          return axios(err.config);
         }
         return Promise.reject(err);
       }
     );
-  }, [history]);
+  }, [history, currentUser]);
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
@@ -80,5 +74,3 @@ useEffect(() => {
     </CurrentUserContext.Provider>
   );
 };
-
-

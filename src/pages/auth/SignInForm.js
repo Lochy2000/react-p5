@@ -28,17 +28,28 @@ function SignInForm() {
   const [errors, setErrors] = useState({});
 
   const history = useHistory();
-  const handleSubmit = async (event) => {
-    event.preventDefault();
 
-    try {
-      const { data } = await axios.post("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/login/", signInData);
-      setCurrentUser(data.user);
-      history.push("/");
-    } catch (err) {
-      setErrors(err.response?.data);
-    }
-  };
+  const handleSubmit = async (event) => {
+  event.preventDefault();
+
+  try {
+    // Make the sign-in request
+    const { data } = await axios.post("/dj-rest-auth/login/", signInData);
+    // Store the user data
+    setCurrentUser(data.user);
+    
+    // Optional: You can store key user info in localStorage if needed
+    // localStorage.setItem("userId", data.user.pk);
+    
+    // Redirect to home page
+    history.push("/");
+  } catch (err) {
+    console.log("Sign in error:", err);
+    setErrors(err.response?.data || {
+      non_field_errors: ["Login failed. Please check your credentials."]
+    });
+  }
+};
 
   const handleChange = (event) => {
     setSignInData({
