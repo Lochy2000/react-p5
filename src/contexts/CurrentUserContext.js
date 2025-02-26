@@ -16,11 +16,13 @@ export const CurrentUserProvider = ({ children }) => {
   // Fetch the current user when the app loads
   const handleMount = async () => {
     try {
+      console.log("Attempting to fetch current user...");
       const { data } = await axiosRes.get("/dj-rest-auth/user/");
+      console.log("User data successfully retrieved:", data);
       setCurrentUser(data);
     } catch (err) {
-      console.log("User fetch error:", err);
-      // Don't redirect here - the user might not be logged in yet
+      console.log("User fetch error:", err.response?.status, err.response?.data);
+      // Don't redirect - user might not be logged in yet
     }
   };
 
@@ -28,36 +30,27 @@ export const CurrentUserProvider = ({ children }) => {
     handleMount();
   }, []);
 
-  // Set up interceptors for token refresh
+  // Set up interceptors for handling auth
   useMemo(() => {
-    // Request interceptor - runs before each request
-    axiosReq.interceptors.request.use(
-      async (config) => {
-        // The JWT cookies should be sent automatically
-        // No need to manually add headers
-        return config;
-      },
-      (err) => {
-        return Promise.reject(err);
-      }
-    );
-
-    // Response interceptor - runs after each response
+    // Response interceptor - handle 401 errors
     axiosRes.interceptors.response.use(
       (response) => response,
       async (err) => {
         if (err.response?.status === 401) {
-          try {
-            // Try to refresh the token
-            await axios.post("/dj-rest-auth/token/refresh/");
-            // If refresh works, retry the original request
-            return axios(err.config);
-          } catch (refreshErr) {
-            // If refresh fails, log out the user
-            setCurrentUser(null);
-            // Only redirect if user was previously logged in
-            if (currentUser) {
+          // Only try to refresh if we previously had a user
+          if (currentUser) {
+            try {
+              console.log("Attempting token refresh");
+              await axios.post("/dj-rest-auth/token/refresh/");
+              console.log("Token refresh successful");
+              // If refresh works, retry the original request
+              return axios(err.config);
+            } catch (refreshErr) {
+              // If refresh fails, log out the user and redirect
+              console.log("Token refresh failed:", refreshErr.response?.status, refreshErr.response?.data);
+              setCurrentUser(null);
               history.push("/signin");
+              return Promise.reject(refreshErr);
             }
           }
         }

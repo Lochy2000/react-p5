@@ -26,30 +26,40 @@ function SignInForm() {
   const { username, password } = signInData;
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const history = useHistory();
 
   const handleSubmit = async (event) => {
-  event.preventDefault();
+    event.preventDefault();
+    setLoading(true);
+    try {
+      // Make the sign-in request
+      const { data } = await axios.post("/dj-rest-auth/login/", signInData);
+      console.log("Login successful:", data);
+      
+      // Store the user data
+      setCurrentUser(data.user);
 
-  try {
-    // Make the sign-in request
-    const { data } = await axios.post("/dj-rest-auth/login/", signInData);
-    // Store the user data
-    setCurrentUser(data.user);
-    
-    // Optional: You can store key user info in localStorage if needed
-    // localStorage.setItem("userId", data.user.pk);
-    
-    // Redirect to home page
-    history.push("/");
-  } catch (err) {
-    console.log("Sign in error:", err);
-    setErrors(err.response?.data || {
-      non_field_errors: ["Login failed. Please check your credentials."]
-    });
-  }
-};
+      // Immediately fetch the current user to ensure we have a valid session
+      try {
+        const { data: userData } = await axios.get("/dj-rest-auth/user/");
+        console.log("User data retrieved after login:", userData);
+      } catch (userErr) {
+        console.log("User data fetch failed after login:", userErr);
+      }
+      
+      // Redirect to home page
+      history.push("/");
+    } catch (err) {
+      console.log("Sign in error:", err);
+      setErrors(err.response?.data || {
+        non_field_errors: ["Login failed. Please check your credentials."]
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (event) => {
     setSignInData({
@@ -100,8 +110,9 @@ function SignInForm() {
             <Button
               className={`${btnStyles.Button} ${btnStyles.Wide} ${btnStyles.Bright}`}
               type="submit"
+              disabled={loading}
             >
-              Sign in
+              {loading ? "Signing in..." : "Sign in"}
             </Button>
             {errors.non_field_errors?.map((message, idx) => (
               <Alert key={idx} variant="warning" className="mt-3">

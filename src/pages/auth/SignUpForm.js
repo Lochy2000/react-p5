@@ -26,6 +26,7 @@ const SignUpForm = () => {
   const { username, password1, password2 } = signUpData;
 
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const history = useHistory();
 
@@ -38,11 +39,19 @@ const SignUpForm = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setLoading(true);
     try {
-      await await axios.post("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/registration/", signUpData);
+      // Use relative URL with axios defaults
+      const response = await axios.post("/dj-rest-auth/registration/", signUpData);
+      console.log("Registration successful:", response);
       history.push("/signin");
     } catch (err) {
-      setErrors(err.response?.data);
+      console.log("Registration error:", err);
+      setErrors(err.response?.data || {
+        non_field_errors: ["Sign up failed. Please try again."]
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -107,8 +116,9 @@ const SignUpForm = () => {
             <Button
               className={`${btnStyles.Button} ${btnStyles.Wide} ${btnStyles.Bright}`}
               type="submit"
+              disabled={loading}
             >
-              Sign up
+              {loading ? "Signing up..." : "Sign up"}
             </Button>
             {errors.non_field_errors?.map((message, idx) => (
               <Alert key={idx} variant="warning" className="mt-3">
