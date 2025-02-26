@@ -33,7 +33,7 @@ export const CurrentUserProvider = ({ children }) => {
   // Set up interceptors for handling auth
   useMemo(() => {
     // Response interceptor - handle 401 errors
-    axiosRes.interceptors.response.use(
+    axiosReq.interceptors.response.use(
       (response) => response,
       async (err) => {
         if (err.response?.status === 401) {

@@ -10,18 +10,47 @@ import {
 import Avatar from "./Avatar";
 import axios from "axios";
 
+// Helper function to get CSRF token from cookies
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
 const NavBar = () => {
   const currentUser = useCurrentUser();
   const setCurrentUser = useSetCurrentUser();
 
   const handleSignOut = async () => {
     try {
-      await axios.post("https://drftesting-caf88c0c0aca.herokuapp.com/dj-rest-auth/logout/");
+      // Get CSRF token
+      const csrftoken = getCookie('csrftoken');
+      
+      // Add CSRF token to request headers
+      await axios.post("/dj-rest-auth/logout/", {}, {
+        headers: {
+          'X-CSRFToken': csrftoken,
+        }
+      });
+      
       setCurrentUser(null);
+      console.log("User signed out successfully");
     } catch (err) {
-      console.log(err);
+      console.log("Sign out error:", err);
     }
   };
+
+  // For debugging - helps identify if currentUser is being set correctly
+  console.log("Current user in NavBar:", currentUser);
 
   const addPostIcon = (
     <NavLink

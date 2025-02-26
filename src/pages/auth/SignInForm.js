@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 
 import Form from "react-bootstrap/Form";
@@ -18,6 +18,7 @@ import { useSetCurrentUser } from "../../contexts/CurrentUserContext";
 
 function SignInForm() {
   const setCurrentUser = useSetCurrentUser();
+  const [mounted, setMounted] = useState(true);
 
   const [signInData, setSignInData] = useState({
     username: "",
@@ -30,6 +31,13 @@ function SignInForm() {
 
   const history = useHistory();
 
+  // Cleanup function to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      setMounted(false);
+    };
+  }, []);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -38,13 +46,21 @@ function SignInForm() {
       const { data } = await axios.post("/dj-rest-auth/login/", signInData);
       console.log("Login successful:", data);
       
-      // Store the user data
-      setCurrentUser(data.user);
-
+      // Only update state if component is still mounted
+      if (mounted) {
+        // Store the user data
+        setCurrentUser(data.user);
+      }
+      
       // Immediately fetch the current user to ensure we have a valid session
       try {
         const { data: userData } = await axios.get("/dj-rest-auth/user/");
         console.log("User data retrieved after login:", userData);
+        
+        // Only update state if component is still mounted
+        if (mounted) {
+          setCurrentUser(userData);
+        }
       } catch (userErr) {
         console.log("User data fetch failed after login:", userErr);
       }
@@ -53,11 +69,19 @@ function SignInForm() {
       history.push("/");
     } catch (err) {
       console.log("Sign in error:", err);
-      setErrors(err.response?.data || {
-        non_field_errors: ["Login failed. Please check your credentials."]
-      });
+      
+      // Only update state if component is still mounted
+      if (mounted) {
+        setErrors(err.response?.data || {
+          non_field_errors: ["Login failed. Please check your credentials."]
+        });
+        setLoading(false);
+      }
     } finally {
-      setLoading(false);
+      // Only update state if component is still mounted
+      if (mounted) {
+        setLoading(false);
+      }
     }
   };
 
