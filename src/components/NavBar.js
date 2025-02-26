@@ -2,7 +2,7 @@ import React from "react";
 import { Navbar, Container, Nav } from "react-bootstrap";
 import logo from "../assets/logo.png";
 import styles from "../styles/NavBar.module.css";
-import { NavLink } from "react-router-dom";
+import { NavLink, useHistory } from "react-router-dom";
 import {
   useCurrentUser,
   useSetCurrentUser,
@@ -10,39 +10,39 @@ import {
 import Avatar from "./Avatar";
 import axios from "axios";
 
-// Helper function to get CSRF token from cookies
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-
 const NavBar = () => {
   const currentUser = useCurrentUser();
   const setCurrentUser = useSetCurrentUser();
+  const history = useHistory();
 
+  // Handle sign out with proper JWT token clearing
   const handleSignOut = async () => {
     try {
-      // Get CSRF token
-      const csrftoken = getCookie('csrftoken');
-      
-      // Add CSRF token to request headers
-      await axios.post("/dj-rest-auth/logout/", {}, {
-        headers: {
-          'X-CSRFToken': csrftoken,
-        }
-      });
-      
+      // Try to use the logout endpoint first
+      try {
+        await axios.post("/dj-rest-auth/logout/");
+        console.log("Server logout successful");
+      } catch (error) {
+        console.log("Server logout failed, continuing with client-side logout");
+      }
+
+      // Clear the user state in React
       setCurrentUser(null);
+      
+      // Clear JWT cookies (try multiple patterns to ensure they're cleared)
+      document.cookie = "my-app-auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie = "my-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
+      // Try with specific domain if needed
+      const domain = window.location.hostname;
+      document.cookie = `my-app-auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
+      document.cookie = `my-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
+      
+      // Also clear any session cookies
+      document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
+      // Redirect to the sign-in page
+      history.push("/signin");
       console.log("User signed out successfully");
     } catch (err) {
       console.log("Sign out error:", err);
@@ -61,6 +61,7 @@ const NavBar = () => {
       <i className="far fa-plus-square"></i>Add post
     </NavLink>
   );
+  
   const loggedInIcons = (
     <>
       <NavLink
@@ -88,6 +89,7 @@ const NavBar = () => {
       </NavLink>
     </>
   );
+  
   const loggedOutIcons = (
     <>
       <NavLink

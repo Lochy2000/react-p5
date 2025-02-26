@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-
 import Form from "react-bootstrap/Form";
 import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
@@ -8,13 +6,12 @@ import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 import Image from "react-bootstrap/Image";
 import Container from "react-bootstrap/Container";
-
 import { Link, useHistory } from "react-router-dom";
-
 import styles from "../../styles/SignInUpForm.module.css";
 import btnStyles from "../../styles/Button.module.css";
 import appStyles from "../../App.module.css";
 import { useSetCurrentUser } from "../../contexts/CurrentUserContext";
+import axios from "axios";
 
 function SignInForm() {
   const setCurrentUser = useSetCurrentUser();
@@ -41,32 +38,35 @@ function SignInForm() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
+    
     try {
-      // Make the sign-in request
+      // Make the sign-in request directly (no CSRF token needed)
       const { data } = await axios.post("/dj-rest-auth/login/", signInData);
       console.log("Login successful:", data);
       
       // Only update state if component is still mounted
       if (mounted) {
-        // Store the user data
-        setCurrentUser(data.user);
-      }
-      
-      // Immediately fetch the current user to ensure we have a valid session
-      try {
-        const { data: userData } = await axios.get("/dj-rest-auth/user/");
-        console.log("User data retrieved after login:", userData);
-        
-        // Only update state if component is still mounted
-        if (mounted) {
-          setCurrentUser(userData);
+        try {
+          // Fetch the current user data with the new token
+          const { data: userData } = await axios.get("/dj-rest-auth/user/");
+          console.log("User data retrieved after login:", userData);
+          
+          if (mounted) {
+            setCurrentUser(userData);
+          }
+          
+          // Redirect to home page
+          history.push("/");
+        } catch (userErr) {
+          console.log("User data fetch failed after login:", userErr);
+          // If we can't get user data but login was successful, 
+          // at least set what we have from the login response
+          if (mounted && data.user) {
+            setCurrentUser(data.user);
+            history.push("/");
+          }
         }
-      } catch (userErr) {
-        console.log("User data fetch failed after login:", userErr);
       }
-      
-      // Redirect to home page
-      history.push("/");
     } catch (err) {
       console.log("Sign in error:", err);
       
@@ -75,7 +75,6 @@ function SignInForm() {
         setErrors(err.response?.data || {
           non_field_errors: ["Login failed. Please check your credentials."]
         });
-        setLoading(false);
       }
     } finally {
       // Only update state if component is still mounted
