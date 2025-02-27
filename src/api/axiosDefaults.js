@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Set the base URL to your Django API (without trailing slash)
 axios.defaults.baseURL = "https://drftesting-caf88c0c0aca.herokuapp.com";
-
+axios.defaults.headers.post["Content-Type"] = "multipart/form-data";
 // Enable credentials to ensure cookies are sent with requests
 axios.defaults.withCredentials = true;
 
