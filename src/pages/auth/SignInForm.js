@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { axiosRes } from "../../api/axiosDefaults";
+
 import Form from "react-bootstrap/Form";
 import Alert from "react-bootstrap/Alert";
 import Button from "react-bootstrap/Button";
@@ -6,16 +8,16 @@ import Col from "react-bootstrap/Col";
 import Row from "react-bootstrap/Row";
 import Image from "react-bootstrap/Image";
 import Container from "react-bootstrap/Container";
+
 import { Link, useHistory } from "react-router-dom";
+
 import styles from "../../styles/SignInUpForm.module.css";
 import btnStyles from "../../styles/Button.module.css";
 import appStyles from "../../App.module.css";
 import { useSetCurrentUser } from "../../contexts/CurrentUserContext";
-import axios from "axios";
 
 function SignInForm() {
   const setCurrentUser = useSetCurrentUser();
-  const [mounted, setMounted] = useState(true);
 
   const [signInData, setSignInData] = useState({
     username: "",
@@ -24,63 +26,21 @@ function SignInForm() {
   const { username, password } = signInData;
 
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
 
   const history = useHistory();
-
-  // Cleanup function to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      setMounted(false);
-    };
-  }, []);
-
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setLoading(true);
-    
     try {
-      // Make the sign-in request directly (no CSRF token needed)
-      const { data } = await axios.post("/dj-rest-auth/login/", signInData);
-      console.log("Login successful:", data);
-      
-      // Only update state if component is still mounted
-      if (mounted) {
-        try {
-          // Fetch the current user data with the new token
-          const { data: userData } = await axios.get("/dj-rest-auth/user/");
-          console.log("User data retrieved after login:", userData);
-          
-          if (mounted) {
-            setCurrentUser(userData);
-          }
-          
-          // Redirect to home page
-          history.push("/");
-        } catch (userErr) {
-          console.log("User data fetch failed after login:", userErr);
-          // If we can't get user data but login was successful, 
-          // at least set what we have from the login response
-          if (mounted && data.user) {
-            setCurrentUser(data.user);
-            history.push("/");
-          }
-        }
-      }
+      console.log("Attempting login with data:", signInData);
+      const response = await axiosRes.post("/dj-rest-auth/login/", signInData);
+      console.log("Login response:", response);
+      console.log("Login cookies:", document.cookie);
+      setCurrentUser(response.data.user);
+      history.push("/");
     } catch (err) {
-      console.log("Sign in error:", err);
-      
-      // Only update state if component is still mounted
-      if (mounted) {
-        setErrors(err.response?.data || {
-          non_field_errors: ["Login failed. Please check your credentials."]
-        });
-      }
-    } finally {
-      // Only update state if component is still mounted
-      if (mounted) {
-        setLoading(false);
-      }
+      console.log("Login error:", err);
+      console.log("Error response:", err.response);
+      setErrors(err.response?.data || {});
     }
   };
 
@@ -133,9 +93,8 @@ function SignInForm() {
             <Button
               className={`${btnStyles.Button} ${btnStyles.Wide} ${btnStyles.Bright}`}
               type="submit"
-              disabled={loading}
             >
-              {loading ? "Signing in..." : "Sign in"}
+              Sign in
             </Button>
             {errors.non_field_errors?.map((message, idx) => (
               <Alert key={idx} variant="warning" className="mt-3">

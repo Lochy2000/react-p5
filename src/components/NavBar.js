@@ -2,59 +2,30 @@ import React from "react";
 import { Navbar, Container, Nav } from "react-bootstrap";
 import logo from "../assets/logo.png";
 import styles from "../styles/NavBar.module.css";
-import { NavLink, useHistory } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   useCurrentUser,
   useSetCurrentUser,
 } from "../contexts/CurrentUserContext";
 import Avatar from "./Avatar";
-import axios from "axios";
+
+import {  axiosRes } from "../api/axiosDefaults";
 import useClickOutsideToggle from "../hooks/useClickOutsideToggle";
 
 const NavBar = () => {
   const currentUser = useCurrentUser();
   const setCurrentUser = useSetCurrentUser();
-  const history = useHistory();
 
-  // Import the custom hook
   const { expanded, setExpanded, ref } = useClickOutsideToggle();
 
-  // Handle sign out with proper JWT token clearing
   const handleSignOut = async () => {
     try {
-      // Try to use the logout endpoint first
-      try {
-        await axios.post("/dj-rest-auth/logout/");
-        console.log("Server logout successful");
-      } catch (error) {
-        console.log("Server logout failed, continuing with client-side logout");
-      }
-
-      // Clear the user state in React
+      await axiosRes.post("dj-rest-auth/logout/");
       setCurrentUser(null);
-      
-      // Clear JWT cookies (try multiple patterns to ensure they're cleared)
-      document.cookie = "my-app-auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      document.cookie = "my-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      
-      // Try with specific domain if needed
-      const domain = window.location.hostname;
-      document.cookie = `my-app-auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
-      document.cookie = `my-refresh-token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
-      
-      // Also clear any session cookies
-      document.cookie = "sessionid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-      
-      // Redirect to the sign-in page
-      history.push("/signin");
-      console.log("User signed out successfully");
     } catch (err) {
-      console.log("Sign out error:", err);
+      console.log(err);
     }
   };
-
-  // For debugging - helps identify if currentUser is being set correctly
-  console.log("Current user in NavBar:", currentUser);
 
   const addPostIcon = (
     <NavLink
@@ -65,7 +36,6 @@ const NavBar = () => {
       <i className="far fa-plus-square"></i>Add post
     </NavLink>
   );
-  
   const loggedInIcons = (
     <>
       <NavLink
@@ -93,7 +63,6 @@ const NavBar = () => {
       </NavLink>
     </>
   );
-  
   const loggedOutIcons = (
     <>
       <NavLink
